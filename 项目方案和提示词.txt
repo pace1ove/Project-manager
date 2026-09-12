@@ -1,0 +1,337 @@
+## 1. 项目概述
+开发一个用于制造业/工程行业的明细表（BOM）管理与生成软件的前端Demo。核心功能是：维护标准BOM（标准明细表模板），通过配置项（如电压、材质等）和配置规则自动组合生成项目BOM（具体项目明细表）。支持项目BOM微调、差异对比。  
+本阶段只实现前端，数据使用Mock数据或LocalStorage模拟，不接后端。
+
+## 2. 技术栈
+- Vue 3 + TypeScript + Vite
+- UI组件库：Element Plus
+- 状态管理：Pinia
+- 路由：Vue Router
+- 表格：Element Plus Table（复杂表格可用vxe-table，但本Demo用Element Plus即可）
+- 图标：@element-plus/icons-vue
+- 数据：Mock数据（静态TS文件）+ LocalStorage持久化
+- 其他：dayjs（日期处理）、xlsx（导出Excel，可选用）
+
+## 3. 核心概念
+- **标准BOM**：标准化的物料清单模板，包含多个明细行、若干配置项、以及每个明细行的生效条件（配置规则）。
+- **配置项**：影响BOM组成的参数，如“电压”、“材质”、“防护等级”，每个配置项有多个选项（如220V、380V）。
+- **配置规则**：描述当选择某些配置项选项时，某个明细行是否出现、数量变化或物料替换。用条件表达式表示，支持简单AND/OR。
+- **项目BOM**：基于某个标准BOM和一组具体配置生成的实例，可进一步增删改明细行，并保留来源标记。
+- **配置快照**：生成项目BOM时保存的配置项选项值，用于追溯和差异对比。
+
+## 4. 功能需求
+
+### 4.1 工作台 Dashboard
+- 显示统计卡片：标准BOM数量、项目BOM数量、物料总数、最近更新。
+- 快捷入口按钮：新建标准BOM、打开配置器、新建项目BOM。
+- 最近打开的标准BOM和项目BOM列表（LocalStorage记录最近5条）。
+
+### 4.2 基础数据管理
+#### 4.2.1 物料管理
+- 列表展示物料：编码、名称、规格型号、基本单位、分类、状态、备注。
+- 搜索、筛选（分类、状态）、分页。
+- 新增/编辑/删除物料（删除为逻辑删除，状态置为“停用”）。
+- 物料分类简单树形展示（2级），可筛选。
+- 提供若干条Mock物料数据（至少30条，包含不同分类）。
+
+#### 4.2.2 项目信息管理
+- 列表展示项目：项目编号、项目名称、客户名称、负责人、状态（进行中/已完成/已取消）、创建时间。
+- 新增/编辑/删除项目。
+- 提供5条Mock项目数据。
+
+#### 4.2.3 单位管理
+- 简单列表：单位编码、名称、精度。
+- 增删改查，提供常用单位（个、台、套、米、千克、升等）。
+
+### 4.3 标准BOM管理
+#### 4.3.1 标准BOM列表
+- 查询条件：BOM编号、名称、状态（草稿/已发布/已归档）、版本。
+- 列表字段：BOM编号、名称、版本、状态、配置项数量、明细行数量、更新人、更新时间、操作。
+- 行操作：编辑、复制、发布、归档、版本历史、删除。
+- 批量操作：批量归档、批量导出（导出Excel可选）。
+- 提供2-3条Mock标准BOM数据。
+
+#### 4.3.2 标准BOM编辑器（核心页面）
+采用Tabs分区：
+- **基本信息**：BOM编号（自动生成，如STD-0001）、名称、物料分类（下拉）、版本号（如V1.0）、生效日期、失效日期、备注。
+- **配置项定义**：
+  - 表格列出配置项：名称、编码、类型（单选/多选/数值/文本）、是否必选、排序、操作。
+  - 可新增、编辑、删除、上移下移配置项。
+  - 每个配置项可维护选项列表：选项值、选项标签、是否默认、排序、启用状态。
+  - 选项编辑使用弹窗或行内编辑，支持添加多个选项。
+- **明细行管理**：
+  - 表格列出明细行：行号、物料编码、物料名称、规格型号、单位、数量、位号/位置、替代料编码、生效条件、备注、操作。
+  - 可新增、编辑、删除、复制、上移下移明细行。
+  - 新增明细行时，从物料主数据选择（弹窗搜索）或手动输入编码。
+  - “生效条件”列显示简要条件描述，点击可打开条件编辑器。
+  - **条件编辑器**：可视化构建条件，支持选择配置项、比较符（等于/不等于/包含）、选项值，支持多个条件用AND/OR组合。条件可影响该行是否出现（包含/排除）或数量变化（乘以系数或固定值）。
+  - 简化实现：条件以JSON形式存储，前端用下拉和按钮组合生成。
+- **预览与验证**：
+  - 在编辑器内提供一个“预览”面板，动态渲染所有配置项为表单（根据类型显示下拉、多选、输入框）。
+  - 用户选择配置项值后，实时解析所有明细行的生效条件，显示符合条件的明细行（灰色显示被排除的行）。
+  - 点击“校验”按钮，检查：必选配置项是否有默认值、物料编码是否存在于物料库、位号是否重复、条件表达式是否合法。显示校验结果列表。
+
+#### 4.3.3 版本历史
+- 在标准BOM编辑器中，每次发布生成新版本，保存历史快照。
+- 弹窗显示版本列表：版本号、变更说明、发布人、发布时间、状态。
+- 可查看历史版本的明细行（只读），可回滚到某版本（复制为草稿）。
+- Demo简化：只记录版本号和发布时间，变更说明手动填写。
+
+### 4.4 配置器（选配生成）
+- 页面布局：左侧为标准BOM选择（下拉，只显示已发布的标准BOM及版本），选择后右侧动态渲染配置项表单。
+- 配置项表单根据类型渲染：单选为下拉框，多选为多选框组，数值为数字输入，文本为文本输入。
+- 必选配置项标记红星，未选择时提示。
+- 下方实时预览区域：显示根据当前配置解析出的明细行表格（只读），包含物料信息、数量、位号等。
+- 解析规则：
+  - 遍历标准BOM所有明细行，如果该行有条件，则判断条件是否满足（根据当前配置值）。
+  - 条件满足则包含该行（或根据规则修改数量），不满足则排除。
+  - 无条件行始终包含。
+- 用户可以保存当前配置为“配置方案”（可选，简单保存到LocalStorage，命名方案）。
+- 点击“生成项目BOM”按钮，弹出项目选择对话框（选择已有项目或新建项目），然后创建项目BOM，跳转到项目BOM编辑页。
+
+### 4.5 项目BOM管理
+#### 4.5.1 项目BOM列表
+- 查询条件：项目BOM编号、项目名称、来源标准BOM编号、状态（草稿/待审核/已发布/已取消）。
+- 列表字段：项目BOM编号、项目名称、来源标准BOM（编号+版本）、配置摘要（简要显示配置项和选项）、状态、更新人、更新时间、操作。
+- 行操作：编辑、复制、提交审核、发布、删除、与标准BOM对比。
+- 提供1-2条Mock项目BOM数据。
+
+#### 4.5.2 项目BOM编辑器
+- 基本信息：项目BOM编号（自动生成，如PRJ-0001）、关联项目（下拉）、来源标准BOM（只读显示编号和版本）、配置快照（只读展示为标签或表格）、负责人、备注。
+- 明细行管理：
+  - 表格列：行号、物料编码、物料名称、规格型号、单位、数量、位号、替代料、来源类型（继承/新增/修改）、备注、操作。
+  - 初始明细行从来源标准BOM按配置自动生成，所有行“来源类型”为“继承”。
+  - 用户可以新增行（来源类型=新增）、删除行（来源类型=删除，但保留显示为删除线或红色背景）、修改数量/物料/位号（来源类型自动变为“修改”）。
+  - 修改行高亮显示（黄色背景）。
+  - 操作包括：编辑行、删除行、恢复删除、上移下移。
+- 保存按钮：保存草稿。
+- 提交审核：状态变为“待审核”。
+- 发布：状态变为“已发布”。
+- 页面内提供“与标准BOM对比”按钮，打开对比视图。
+
+#### 4.5.3 差异对比
+- 在项目BOM列表或编辑器中触发。
+- 对比逻辑：根据项目BOM的配置快照，重新解析来源标准BOM得到“标准结果集”。
+- 与当前项目BOM的明细行逐行对比，比较字段：物料编码、数量、位号、替代料。
+- 差异分类：
+  - 新增行：项目BOM中存在，标准结果集中不存在（绿色标识）。
+  - 删除行：标准结果集中存在，项目BOM中不存在或被标记删除（红色标识）。
+  - 修改行：物料编码相同但数量/位号/替代料不同（黄色标识，并显示修改前后值）。
+- 差异对比页面以表格展示，分三部分：新增行、删除行、修改行，每部分可折叠。
+- 提供“导出差异报告”按钮（导出为Excel或打印）。
+
+### 4.6 导出功能（可选，Demo可简化）
+- 标准BOM列表和项目BOM列表支持导出当前查询结果为Excel。
+- 项目BOM编辑页支持导出当前明细行为Excel。
+- 使用xlsx库实现。
+
+## 5. 数据模型（TypeScript接口）
+请在项目中定义以下接口（放在`src/types/index.ts`）：
+
+```typescript
+export interface Material {
+  id: string;
+  code: string;
+  name: string;
+  spec?: string;
+  unit: string;
+  category: string;
+  status: 'active' | 'inactive';
+  remark?: string;
+}
+
+export interface Project {
+  id: string;
+  projectNo: string;
+  projectName: string;
+  customer?: string;
+  owner?: string;
+  status: 'ongoing' | 'completed' | 'cancelled';
+  createdAt: string;
+}
+
+export interface Unit {
+  id: string;
+  code: string;
+  name: string;
+  precision?: number;
+}
+
+export interface ConfigOption {
+  id: string;
+  value: string;
+  label: string;
+  isDefault?: boolean;
+  enabled: boolean;
+  sortOrder: number;
+}
+
+export interface ConfigItem {
+  id: string;
+  name: string;
+  code: string;
+  type: 'single' | 'multi' | 'number' | 'text';
+  required: boolean;
+  sortOrder: number;
+  options: ConfigOption[];
+}
+
+export interface ConditionExpression {
+  // 简化条件： { logic: 'AND'|'OR', conditions: [{ configCode, operator, value }] }
+  logic: 'AND' | 'OR';
+  conditions: {
+    configCode: string;
+    operator: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan';
+    value: string | number;
+  }[];
+}
+
+export interface BomLine {
+  id: string;
+  materialCode: string;
+  materialName: string;
+  spec?: string;
+  unit: string;
+  qty: number;
+  position?: string;
+  substituteMaterialCode?: string;
+  conditionExpression?: ConditionExpression | null;
+  remark?: string;
+  sortOrder: number;
+}
+
+export interface StandardBom {
+  id: string;
+  bomNo: string;
+  name: string;
+  category?: string;
+  version: string;
+  status: 'draft' | 'published' | 'archived';
+  effectiveDate?: string;
+  expirationDate?: string;
+  configItems: ConfigItem[];
+  lines: BomLine[];
+  remark?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  versionHistory?: { version: string; changeNote?: string; publishedAt: string; publishedBy: string }[];
+}
+
+export interface ProjectBomLine {
+  id: string;
+  materialCode: string;
+  materialName: string;
+  spec?: string;
+  unit: string;
+  qty: number;
+  position?: string;
+  substituteMaterialCode?: string;
+  sourceType: 'inherited' | 'added' | 'modified' | 'deleted';
+  sourceLineId?: string;
+  remark?: string;
+  sortOrder: number;
+}
+
+export interface ProjectBom {
+  id: string;
+  bomNo: string;
+  projectId: string;
+  sourceStandardBomId: string;
+  sourceVersion: string;
+  configSnapshot: Record<string, string | string[] | number>;
+  status: 'draft' | 'pending' | 'published' | 'cancelled';
+  lines: ProjectBomLine[];
+  remark?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## 6. 页面路由结构
+使用 Vue Router 配置以下路由：
+- `/` 重定向到 `/dashboard`
+- `/dashboard` 工作台
+- `/base/materials` 物料管理
+- `/base/projects` 项目信息管理
+- `/base/units` 单位管理
+- `/standard-bom` 标准BOM列表
+- `/standard-bom/new` 新建标准BOM（编辑器）
+- `/standard-bom/:id/edit` 编辑标准BOM（编辑器）
+- `/configurator` 配置器（选配生成）
+- `/project-bom` 项目BOM列表
+- `/project-bom/new` 新建项目BOM（从配置器跳转或手动选择标准BOM）
+- `/project-bom/:id/edit` 编辑项目BOM
+- `/project-bom/:id/compare` 差异对比
+
+## 7. UI/UX要求
+- 整体布局：左侧固定菜单栏（含Logo、菜单项），顶部面包屑和用户头像，内容区有内边距。
+- 菜单项分组：工作台、基础数据（子菜单：物料、项目、单位）、标准BOM、配置器、项目BOM。
+- 使用 Element Plus 组件，风格简洁专业，颜色以蓝白为主。
+- 列表页面统一使用卡片包裹，带查询条件和操作按钮区。
+- 表格操作列使用文字按钮（编辑、删除等），危险操作红色。
+- 明细行来源类型颜色：继承默认黑色，新增绿色，修改黄色背景，删除红色删除线。
+- 差异对比中同样使用颜色标识。
+- 条件编辑器使用弹窗，内嵌表单和条件组合控件。
+- 配置器页面左右分栏（左配置项卡片，右预览表格），响应式。
+- 所有表单弹窗需要验证必填字段。
+- 使用 `ElMessage` 提示操作结果，删除操作使用 `ElMessageBox.confirm` 二次确认。
+
+## 8. Mock数据要求
+- 在 `src/mock/` 目录下创建 `materials.ts`、`projects.ts`、`units.ts`、`standardBoms.ts`、`projectBoms.ts`。
+- 物料数据至少30条，包含不同分类（如电气件、机械件、标准件、辅料）。
+- 标准BOM至少2个，其中一个有多个配置项（3个以上）和至少10条明细行，行条件覆盖不同配置组合，以便演示配置器效果。
+- 项目BOM至少1个，已生成并做了一些修改。
+- Mock数据要相互关联：标准BOM中的物料编码存在于物料数据中；项目BOM关联项目和标准BOM。
+- 所有日期使用ISO格式字符串。
+
+## 9. 状态管理与持久化
+- 使用 Pinia 管理全局状态：当前用户、物料列表、项目列表、单位列表、标准BOM列表、项目BOM列表。
+- 初始化时从Mock数据加载到Pinia，并尝试从LocalStorage读取（如果有），否则用Mock。
+- 所有增删改操作更新Pinia并同步写入LocalStorage（key分别为`materials`、`projects`、`units`、`standardBoms`、`projectBoms`）。
+- 最近打开记录单独存LocalStorage（key=`recentlyOpened`，数组，最多5条）。
+
+## 10. 核心规则引擎实现（简易）
+在 `src/utils/ruleEngine.ts` 中实现一个函数：
+```typescript
+export function evaluateCondition(condition: ConditionExpression, configSnapshot: Record<string, any>): boolean
+```
+- 根据 `logic` 和 `conditions` 数组判断是否满足。
+- 比较运算符支持：equals, notEquals, contains, greaterThan, lessThan。
+- 数值类型比较时进行类型转换。
+- 多选配置项，`configSnapshot[code]` 可能是数组，`contains` 表示数组包含某个值。
+- 另外实现 `resolveStandardBom(standardBom, configSnapshot): BomLine[]`，返回根据条件过滤和调整数量后的明细行列表。
+
+## 11. 开发步骤（AI执行顺序）
+1. 初始化Vue3 + TypeScript + Vite项目，安装依赖，配置Element Plus、Pinia、Router。
+2. 创建目录结构，定义TypeScript接口和Mock数据。
+3. 实现Pinia stores（物料、项目、单位、标准BOM、项目BOM、最近打开）。
+4. 搭建布局组件（侧边栏、顶部栏、内容区）。
+5. 实现工作台页面。
+6. 实现基础数据管理页面（物料、项目、单位），注意物料需要分类筛选树。
+7. 实现标准BOM列表页，包括查询、分页、操作。
+8. 实现标准BOM编辑器（核心，包含配置项Tab、明细行Tab、预览Tab、校验功能）。
+9. 实现条件编辑器组件（弹窗）。
+10. 实现配置器页面和生成项目BOM流程。
+11. 实现项目BOM列表页。
+12. 实现项目BOM编辑器（包含来源标记、修改高亮）。
+13. 实现差异对比页面。
+14. 添加LocalStorage持久化和最近打开记录。
+15. 完善样式、校验、交互细节。
+16. 测试主要流程，确保可运行。
+
+## 12. 验收标准
+- 项目可正常启动（`npm run dev`），无编译错误。
+- 所有路由页面可访问，导航正常。
+- 标准BOM可创建、编辑配置项、明细行，设置条件，保存草稿，发布。
+- 配置器能根据所选标准BOM动态生成表单，实时预览明细行。
+- 能从配置器生成项目BOM，跳转到编辑页，明细行初始为继承状态。
+- 在项目BOM编辑页可新增、删除、修改行，状态标记正确。
+- 差异对比页面能正确显示新增、删除、修改行，并显示前后值。
+- 所有数据变更刷新页面后仍存在（LocalStorage持久化）。
+- Mock数据完整，演示流程顺畅。
+
+---
+
+**请根据以上需求，生成完整的前端项目代码，包括所有页面、组件、样式、Mock数据和状态管理。确保代码可运行，符合Vue3 + TypeScript + Element Plus最佳实践。**

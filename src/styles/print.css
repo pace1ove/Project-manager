@@ -1,0 +1,300 @@
+/**
+ * 打印样式表
+ * 仅在 @media print 下生效，适配 A4 纸张，隐藏非打印元素
+ * 引入方式：main.ts 中 import '@/styles/print.css'（天然只在打印时应用规则）
+ */
+
+/* ===== 页面尺寸与边距 ===== */
+@page {
+  size: A4 portrait;
+  margin: 12mm 10mm;
+  @top-center {
+    content: string(print-header);
+    font-size: 12pt;
+    font-weight: 600;
+    color: #303133;
+  }
+  @bottom-center {
+    content: "第 " counter(page) " 页 / 共 " counter(pages) " 页";
+    font-size: 9pt;
+    color: #909399;
+  }
+}
+
+@page landscape {
+  size: A4 landscape;
+  margin: 10mm 8mm;
+}
+
+/* 横向打印时应用 */
+.print-landscape {
+  page: landscape;
+}
+
+/* ===== 打印根容器重置 ===== */
+@media print {
+  html, body {
+    background: #fff !important;
+    font-size: 12pt;
+    color: #000;
+  }
+
+  /* 隐藏所有应用外壳（侧边栏、导航、工具栏、按钮、滚动条等） */
+  .no-print,
+  .el-header,
+  .el-aside,
+  .el-menu,
+  .editor-header,
+  .bom-toolbar,
+  .bom-toolbar-extra,
+  .bom-action-bar,
+  .page-container > .el-card .toolbar,
+  .bottom-action-bar,
+  .el-dialog__headerbtn,
+  .el-pagination,
+  .quick-grid,
+  [class*="sidebar"],
+  [class*="navbar"],
+  button,
+  .el-button,
+  .el-icon,
+  .search-bar,
+  .action-bar,
+  .filter-icon,
+  .drag-handle,
+  .tree-toggle,
+  .row-actions {
+    display: none !important;
+  }
+
+  /* 打印专用元素 */
+  .print-only {
+    display: block !important;
+  }
+
+  /* 去除卡片阴影和边框，避免打印多余颜色 */
+  .card-wrapper,
+  .chart-card,
+  .stat-card,
+  .el-card,
+  .page-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Tabs 在打印时只显示内容，隐藏标签头 */
+  .el-tabs__header,
+  .el-tabs__nav-wrap,
+  .el-tabs__nav {
+    display: none !important;
+  }
+  .el-tabs__content {
+    overflow: visible !important;
+  }
+  .el-tab-pane {
+    display: block !important;
+  }
+
+  /* 折叠面板打印时全部展开 */
+  .el-collapse-item__wrap {
+    display: block !important;
+    border-bottom: none !important;
+  }
+  .el-collapse-item__header {
+    display: none !important;
+  }
+
+  /* ===== 打印表格优化 ===== */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-size: 10.5pt;
+  }
+  .print-table th,
+  .print-table td {
+    border: 1px solid #999 !important;
+    padding: 4px 8px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  /* 表头每页重复 */
+  .print-table thead {
+    display: table-header-group;
+  }
+  .print-table th {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-weight: 600;
+  }
+  /* 行内分页避免截断 */
+  .print-table tr {
+    page-break-inside: avoid;
+  }
+
+  /* ===== 打印页眉/页脚 ===== */
+  .print-header {
+    string-set: print-header content();
+    text-align: center;
+    font-size: 14pt;
+    font-weight: 700;
+    margin-bottom: 8mm;
+    border-bottom: 2px solid #303133;
+    padding-bottom: 4mm;
+  }
+  .print-header .print-header-sub {
+    font-size: 10pt;
+    font-weight: 400;
+    color: #606266;
+    margin-top: 2mm;
+  }
+
+  .print-footer {
+    margin-top: 6mm;
+    padding-top: 3mm;
+    border-top: 1px solid #ccc;
+    font-size: 9pt;
+    color: #606266;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* 打印信息表格（基本信息描述） */
+  .print-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6mm;
+    font-size: 10.5pt;
+  }
+  .print-info-table td {
+    border: 1px solid #bbb;
+    padding: 5px 10px;
+  }
+  .print-info-table .label {
+    width: 25%;
+    background: #f0f0f0;
+    font-weight: 600;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 打印区块分页控制 */
+  .print-section {
+    page-break-inside: avoid;
+    margin-bottom: 5mm;
+  }
+  .print-section-title {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 4mm 0 2mm 0;
+    padding-bottom: 1mm;
+    border-bottom: 1px solid #303133;
+  }
+
+  /* 树形层级打印缩进 */
+  .print-tree-item {
+    padding-left: 0;
+  }
+  .print-tree-level-1 { padding-left: 0; }
+  .print-tree-level-2 { padding-left: 14px; }
+  .print-tree-level-3 { padding-left: 28px; }
+  .print-tree-level-4 { padding-left: 42px; }
+
+  /* 颜色打印优化：标签用边框代替背景 */
+  .el-tag {
+    border: 1px solid #999 !important;
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 隐藏滚动条占位 */
+  *::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* 屏幕预览时（dialog 内）使用的预览样式，非打印 */
+.print-preview-area {
+  background: #f0f2f5;
+  padding: 20px;
+  overflow: auto;
+}
+
+/* ===== 打印隔离：body.is-printing 时只显示 #print-area ===== */
+#print-area {
+  display: none;
+}
+@media print {
+  body.is-printing > *:not(#print-area) {
+    display: none !important;
+  }
+  body.is-printing #print-area {
+    display: block !important;
+  }
+  body.is-printing #print-area .print-paper.raw {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+  body.is-printing .print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+}
+.print-paper {
+  background: #fff;
+  margin: 0 auto 20px auto;
+  padding: 18mm 16mm;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  width: 210mm;
+  min-height: 297mm;
+  font-size: 10.5pt;
+  color: #000;
+}
+.print-paper.landscape {
+  width: 297mm;
+  min-height: 210mm;
+}
+.print-paper .print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5pt;
+}
+.print-paper .print-table th,
+.print-paper .print-table td {
+  border: 1px solid #999;
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
+}
+.print-paper .print-table th {
+  background: #e8e8e8;
+  font-weight: 600;
+}
+.print-paper .print-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6mm;
+}
+.print-paper .print-info-table td {
+  border: 1px solid #bbb;
+  padding: 5px 10px;
+}
+.print-paper .print-info-table .label {
+  width: 25%;
+  background: #f0f0f0;
+  font-weight: 600;
+}

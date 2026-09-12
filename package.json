@@ -1,0 +1,74 @@
+{
+  "name": "bom-manager",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.js",
+  "author": "BOM Manager Team",
+  "description": "设备-模块-项目三层BOM管理系统",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.vue",
+    "lint:fix": "eslint src --ext .ts,.vue --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vue-tsc --noEmit && vite build && electron-builder",
+    "electron:preview": "vite build && electron ."
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "dayjs": "^1.11.10",
+    "dexie": "^4.4.5",
+    "element-plus": "^2.6.3",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/test-utils": "^2.5.0",
+    "concurrently": "^10.0.5",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.10.0",
+    "eslint-plugin-vue": "^10.11.0",
+    "happy-dom": "^20.14.3",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.6",
+    "vitest": "^2.1.9",
+    "vue-eslint-parser": "^10.4.1",
+    "vue-tsc": "^2.0.7",
+    "wait-on": "^9.1.0"
+  },
+  "build": {
+    "appId": "com.bommanager.app",
+    "productName": "BOM管理系统",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable",
+        "dir"
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
